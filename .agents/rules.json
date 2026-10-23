@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/google/antigravity/main/schemas/rules.schema.json",
+  "version": "1.0",
+  "description": "Rules configuration and project sharing registry for Unity 6 C# projects.",
+  "inherits": [],
+  "entries": [
+    {
+      "path": "rules/unity-csharp-conventions.md",
+      "description": "Unity 6 C# coding conventions and MonoBehaviour lifecycle rules"
+    },
+    {
+      "path": "rules/unity-performance-gc.md",
+      "description": "Zero-allocation hot paths and performance optimization for Unity 6"
+    },
+    {
+      "path": "rules/unity-architecture-patterns.md",
+      "description": "ScriptableObject architecture and decoupled design patterns"
+    },
+    {
+      "path": "rules/unity-editor-tooling.md",
+      "description": "Custom Inspectors, Editor Windows, and undo tooling guidelines"
+    },
+    {
+      "path": "rules/unity-ui-physics-audio.md",
+      "description": "UI Toolkit, UGUI, Physics 2D/3D, and Audio subsystem standards"
+    },
+    {
+      "path": "rules/unity-audit-release.md",
+      "description": "Pre-release audit checklist and IL2CPP build verification"
+    }
+  ]
+}
