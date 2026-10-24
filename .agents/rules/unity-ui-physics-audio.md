@@ -1,35 +1,41 @@
 ---
 trigger: model_decision
-description: "Subsystem best practices for Unity 6: UI Toolkit and UGUI optimization, 2D/3D physics simulation, and audio management."
+description: "Subsystem best practices for Unity 6: UGUI Canvas optimization, 2D/3D physics simulation, and audio management."
 ---
 
-# Unity 6 UI, Physics & Audio Subsystems
+# Unity 6 UGUI, Physics & Audio Subsystems
 
-This rule specifies performance, architecture, and configuration standards for User Interfaces, Physics simulations, and Audio systems in Unity 6.
+This rule specifies performance, architecture, and configuration standards for UGUI Canvases, Physics simulations, and Audio systems in Unity 6.
+
+> [!NOTE]
+> For modern UI Toolkit (`UnityEngine.UIElements`) standards, silent traps, and data binding, refer to the dedicated rule: `unity-ui-toolkit.md`.
 
 ---
 
-## 1. User Interface (UI) Architecture & Optimization
+## 1. UGUI & TextMeshPro Architecture & Optimization
 
-### A. UI Framework Selection
-- **UI Toolkit (`UnityEngine.UIElements`)**: Preferred for new projects, scalable menus, inventory screens, and HUDs in Unity 6. Offers retained-mode rendering with minimal draw-call overhead.
-- **UGUI (`UnityEngine.UI`)**: Supported for existing or 3D world-space interfaces. Requires strict Canvas partitioning.
+When utilizing Unity's Canvas-based UI system (UGUI), adhere strictly to the following performance invariants to minimize draw calls and vertex rebuild costs.
 
-### B. UGUI Performance Rules: Canvas Splitting
-When an element inside a Canvas moves, changes size, or changes text, Unity must regenerate the entire Canvas vertex mesh.
+### A. Canvas Splitting (Static vs Dynamic)
+When any element within a Canvas moves, scales, or changes text, Unity flags the entire Canvas mesh as dirty and regenerates all vertices on the CPU.
 
-1. **Partition Static vs Dynamic Elements**:
-   - **Static Canvas**: Background panels, borders, static icons, labels. (Batch once, never regenerate).
-   - **Dynamic Canvas**: Health bars, minimap markers, damage numbers, timers. (Regenerates frequently without invalidating static geometry).
-2. **Disable `Raycast Target`**:
-   - By default, `Image` and `TextMeshProUGUI` enable `Raycast Target`. Disable this on all decorative UI elements to eliminate raycast traversal overhead during input processing.
-3. **TextMeshPro Allocation Discipline**:
-   - Always use TextMeshPro (`TextMeshProUGUI`) instead of legacy `Text`.
-   - Use non-allocating formatting overloads:
-     ```csharp
-     // ZERO ALLOCATION
-     _ammoText.SetText("AMMO: {0} / {1}", currentAmmo, maxAmmo);
-     ```
+1. **Partition Canvas Hierarchies**:
+   - **Static Canvas**: Background panels, decorative borders, static icons, invariant labels. (Batched once; never regenerated).
+   - **Dynamic Canvas**: Health bars, minimap markers, floating combat text, active timers. (Regenerates frequently without dirtying the static canvas).
+2. **Sub-Canvas Nesting**: Place rapidly changing elements on a nested child Canvas (`Canvas` component attached to a child GameObject) to localize vertex buffer updates.
+
+### B. Disable `Raycast Target` on Decorative Elements
+By default, newly created `Image`, `RawImage`, and `TextMeshProUGUI` components have `Raycast Target` enabled.
+- **Rule**: Explicitly disable `Raycast Target` on all labels, icons, borders, and decorative backgrounds.
+- Only leave `Raycast Target` enabled on actual interactable controls (Buttons, Sliders, ScrollViews, Toggle inputs). This eliminates pointer raycast hierarchy traversals every frame.
+
+### C. TextMeshPro Zero-Allocation Formatting
+- **Standard**: Exclusively use TextMeshPro (`TextMeshProUGUI`) instead of legacy `UnityEngine.UI.Text`.
+- **Zero Allocations**: Never concatenate strings (`_text.text = "Score: " + score;`). Use TextMeshPro's non-allocating formatting overloads:
+  ```csharp
+  // ZERO ALLOCATION
+  _ammoText.SetText("AMMO: {0} / {1}", currentAmmo, maxAmmo);
+  ```
 
 ---
 

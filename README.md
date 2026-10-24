@@ -15,9 +15,10 @@ To conserve context tokens and adhere to Antigravity's 20,000-token rules budget
 | **`AGENTS.md`** | `always_on` *(inherent)* | Root of workspace; injected unconditionally into all chat turns | Project core invariants, directory layout, `.asmdef` boundaries |
 | **`.agents/rules/unity-csharp-conventions.md`** | `glob` | `*.cs` | Naming standards, `[SerializeField] private`, Unity Object lifetime ("fake null") |
 | **`.agents/rules/unity-performance-gc.md`** | `glob` | `*.cs` | Zero-allocation hot loops, Unity 6 `Awaitable`, `UnityEngine.Pool`, NonAlloc physics |
+| **`.agents/rules/unity-ui-toolkit.md`** | `glob` | `*.uxml, *.uss, *UI*.cs, *Presenter*.cs, *View*.cs` | UI Toolkit standards, silent traps (fonts, kebab-case, flex-shrink), anti click-through, theming |
 | **`.agents/rules/unity-editor-tooling.md`** | `glob` | `*Editor*.cs, Assets/Editor/**/*.cs, *.Editor.cs` | Custom Inspectors, `SerializedObject`, Undo recording, UI Toolkit for Editor |
 | **`.agents/rules/unity-architecture-patterns.md`** | `model_decision` | Injected progressively when architectural design/refactoring is detected | ScriptableObject architecture, Event Bus, State Machines, Dependency Injection |
-| **`.agents/rules/unity-ui-physics-audio.md`** | `model_decision` | Injected progressively when UI, physics, or audio tasks are detected | Canvas splitting, TextMeshPro, `linearVelocity`, AudioSource pooling |
+| **`.agents/rules/unity-ui-physics-audio.md`** | `model_decision` | Injected progressively when UGUI, physics, or audio tasks are detected | Canvas splitting, TextMeshPro, `linearVelocity`, AudioSource pooling |
 | **`.agents/rules/unity-audit-release.md`** | `manual` | Triggered only when the user types `@unity-audit-release` in chat | Pre-flight audit: missing scripts, profiler GC check, IL2CPP, ASTC compression |
 
 ---

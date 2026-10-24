@@ -87,7 +87,8 @@ Assets/
 Specialized rules are loaded based on file patterns and context:
 - **`unity-csharp-conventions.md`**: Automatically applied when inspecting or writing C# (`*.cs`) files.
 - **`unity-performance-gc.md`**: Automatically applied when writing C# files to enforce memory and execution budgets.
+- **`unity-ui-toolkit.md`**: Automatically applied when authoring UI Toolkit files (`*.uxml`, `*.uss`, UI presenters/views).
 - **`unity-editor-tooling.md`**: Automatically applied when working on Editor tools and scripts.
 - **`unity-architecture-patterns.md`**: Triggered on demand for architecture design and refactoring.
-- **`unity-ui-physics-audio.md`**: Triggered on demand for UI, physics simulation, or audio integration.
+- **`unity-ui-physics-audio.md`**: Triggered on demand for UGUI, physics simulation, or audio integration.
 - **`unity-audit-release.md`**: Manually triggered before release via `@unity-audit-release`.
