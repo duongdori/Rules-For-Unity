@@ -12,12 +12,23 @@ This rule governs coding standards, naming conventions, class structure, and lif
 
 ## 1. Naming Conventions
 
+### General Naming Rules
+- Names must be **descriptive and unambiguous** — avoid abbreviations unless universally understood (`UI`, `HUD`, `TMP`).
+- **Spell out local variable and field names in full.** Do not shorten a type or role to an acronym or clipped form — this applies even to short-lived locals:
+  - ❌ `vlg`, `btn`, `img`, `rt`, `go`, `tmp`, `mat`, `idx`, `cfg`, `req`, `tex`
+  - ✅ `layoutGroup`, `button`, `image`, `rectTransform`, `gameObject`, `text`, `material`, `index`, `config`, `request`, `texture`
+- **No Hungarian notation** except the private field prefix (`_`) below.
+- **No single-letter names** except loop counters (`i`, `j`) and LINQ lambdas (`x`).
+
+### Casing & Identifier Patterns
 Maintain consistent naming across all scripts:
 
 | Identifier | Convention | Example | Notes |
 | :--- | :--- | :--- | :--- |
 | **Classes / Structs / Records** | `PascalCase` | `PlayerController`, `InventoryItem` | Clear, noun-based naming |
 | **Interfaces** | `IPascalCase` | `IDamageable`, `IInteractable` | Prefix with capital `I` |
+| **Enums (Type)** | `PascalCase` (singular) | `WeaponType`, `GameState` | Plural for `[Flags]` (`DamageTypes`) |
+| **Enum Members** | `PascalCase` | `None`, `Melee`, `Ranged` | No prefixes; always define `None = 0` |
 | **Methods** | `PascalCase` | `TakeDamage()`, `CalculateTrajectory()` | Verb or verb-phrase |
 | **Properties** | `PascalCase` | `Health`, `IsGrounded` | Encapsulate backing fields |
 | **Public / Protected Fields** | `PascalCase` | `MaxSpeed` | Avoid public fields; use properties |
@@ -25,6 +36,64 @@ Maintain consistent naming across all scripts:
 | **Constants / Readonly Static** | `PascalCase` or `UPPER_SNAKE` | `MaxEnemies`, `DEFAULT_TIMEOUT` | Consistent within the project |
 | **Events / Delegates** | `PascalCase` | `OnHealthChanged`, `OnDied` | Prefix event handlers/publishers clearly |
 | **Local Variables / Parameters**| `camelCase` | `delta`, `targetPosition` | Meaningful, readable names |
+
+### Enum Rules & Standards
+
+#### 1. Naming & Structure
+- **Singular for standard enums**: Use singular noun phrases (e.g., `WeaponType`, `CharacterState`, `AudioChannel`).
+- **Plural for bit flags**: Use plural noun phrases when decorated with `[Flags]` (e.g., `StatusEffects`, `CollisionLayers`, `ItemCategories`).
+- **No prefix on members**: Never prepend the enum type name, `E_`, or Hungarian prefixes to members:
+  - ❌ `WeaponType_Sword`, `E_Sword`, `eSword`
+  - ✅ `Sword`, `Bow`, `Staff`
+
+#### 2. Always Define an Explicit Zero Value (`None = 0`)
+In C#, default initialization zeroes memory (`default(TEnum) == 0`). Always explicitly assign `None = 0` (or `Default = 0` / `Unknown = 0`) as the first member to prevent uninitialized fields from accidentally adopting an unintended active state.
+
+```csharp
+// CORRECT
+public enum GameState
+{
+    None = 0,
+    MainMenu = 1,
+    Loading = 2,
+    Gameplay = 3,
+    Paused = 4,
+    GameOver = 5
+}
+
+// FORBIDDEN: Default(GameState) would silently become MainMenu!
+public enum GameState
+{
+    MainMenu,
+    Loading,
+    Gameplay
+}
+```
+
+#### 3. Explicit Integer Assignment
+Explicitly define integer values (`None = 0`, `Primary = 1`, `Secondary = 2`). This prevents serialized Unity Inspector data corruption if members are reordered or intermediate values are inserted in the future.
+
+#### 4. Bit Flags Enums (`[Flags]`)
+- Always decorate bitmask enums with the `[Flags]` attribute.
+- Use bit-shift notation (`1 << n`) for explicit power-of-two assignments.
+- Consider specifying smaller underlying types (`byte`, `short`) to minimize memory footprint when stored in large arrays or networked structures:
+
+```csharp
+[Flags]
+public enum StatusEffects : byte
+{
+    None     = 0,
+    Burned   = 1 << 0, // 1
+    Frozen   = 1 << 1, // 2
+    Poisoned = 1 << 2, // 4
+    Stunned  = 1 << 3, // 8
+    All      = Burned | Frozen | Poisoned | Stunned
+}
+```
+
+#### 5. Avoid Allocations in Hot Paths
+- Never call `Enum.ToString()` or `Enum.Parse()` in frame loops (`Update`, `FixedUpdate`). Both invoke reflection and create heap string allocations.
+- When using enums as keys in `Dictionary<TKey, TValue>`, Unity 6 / modern .NET provides zero-allocation lookups via default `EqualityComparer<TKey>.Default`. In legacy code or non-generic collections, avoid boxing enums to `object`.
 
 ---
 
