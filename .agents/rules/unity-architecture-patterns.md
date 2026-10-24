@@ -40,7 +40,7 @@ public class WeaponConfig : ScriptableObject
 ```
 
 ### B. ScriptableObject Game Events (Zero-Coupling Messaging)
-Use ScriptableObjects as event channels. Publishers raise the event without knowing who is listening; listeners subscribe via Inspector or code without referencing the publisher.
+Use ScriptableObjects as event channels. Publishers raise the event without knowing who is listening; listeners subscribe via Inspector or code without referencing the publisher. Protect against subscriber exceptions interrupting remaining callbacks:
 
 ```csharp
 [CreateAssetMenu(fileName = "NewGameEvent", menuName = "Game/Events/Game Event")]
@@ -52,7 +52,14 @@ public class GameEvent : ScriptableObject
     {
         for (int i = _listeners.Count - 1; i >= 0; i--)
         {
-            _listeners[i]?.Invoke();
+            try
+            {
+                _listeners[i]?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
     }
 
@@ -68,8 +75,14 @@ public class GameEvent : ScriptableObject
 }
 ```
 
-### C. Shared Variables
-Centralize shared game state (such as `PlayerHealthVariable` or `PlayerScoreVariable`) into ScriptableObjects to allow UI, gameplay, and audio systems to react without a monolithic `GameManager`.
+### C. Shared Variables & The Persistence Trap
+Centralize shared gameplay values (such as `PlayerHealthVariable` or `ScoreVariable`) into ScriptableObjects to allow UI, gameplay, and audio systems to react without a monolithic `GameManager`.
+
+> [!CAUTION]
+> **The ScriptableObject Persistence Trap**:
+> While ScriptableObject field modifications persist across Play Mode sessions **inside the Unity Editor**, they **never persist to disk in standalone production builds** (all changes revert when the application closes).
+> - **ScriptableObjects**: Strictly for **Design-Time Authoring & Read-Only Configuration** (e.g. baseline stats, weapon definitions, drop tables).
+> - **Save Game State**: Must always use pure C# DTO / POCO data classes serialized to disk via JSON, Binary, or dedicated save systems. Never attempt to use ScriptableObjects as your persistent save-game files.
 
 ---
 

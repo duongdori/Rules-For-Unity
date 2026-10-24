@@ -10,7 +10,7 @@
     },
     {
       "path": "rules/unity-performance-gc.md",
-      "description": "Zero-allocation hot paths and performance optimization for Unity 6"
+      "description": "Zero-allocation hot paths, Awaitable, and memory optimization for Unity 6"
     },
     {
       "path": "rules/unity-ui-toolkit.md",
@@ -27,6 +27,26 @@
     {
       "path": "rules/unity-ui-physics-audio.md",
       "description": "UGUI Canvas optimization, Physics 2D/3D, and Audio subsystem standards"
+    },
+    {
+      "path": "rules/unity-input-system.md",
+      "description": "Modern Input System, decoupled InputReader, and action map lifecycle"
+    },
+    {
+      "path": "rules/unity-asset-memory-management.md",
+      "description": "Addressables, Resources.Load prohibition, and native buffer cleanup"
+    },
+    {
+      "path": "rules/unity-data-persistence.md",
+      "description": "Save game architecture, atomic file writing, and DTO serialization"
+    },
+    {
+      "path": "rules/unity-job-system-burst.md",
+      "description": "C# Job System, Burst Compiler, and Native Collections memory safety"
+    },
+    {
+      "path": "rules/unity-testing-diagnostics.md",
+      "description": "Unit testing with UTF, conditional logging, and engine-safe assertions"
     },
     {
       "path": "rules/unity-audit-release.md",

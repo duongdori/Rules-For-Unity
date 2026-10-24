@@ -88,7 +88,12 @@ Specialized rules are loaded based on file patterns and context:
 - **`unity-csharp-conventions.md`**: Automatically applied when inspecting or writing C# (`*.cs`) files.
 - **`unity-performance-gc.md`**: Automatically applied when writing C# files to enforce memory and execution budgets.
 - **`unity-ui-toolkit.md`**: Automatically applied when authoring UI Toolkit files (`*.uxml`, `*.uss`, UI presenters/views).
-- **`unity-editor-tooling.md`**: Automatically applied when working on Editor tools and scripts.
+- **`unity-editor-tooling.md`**: Automatically applied when working on Editor tools and scripts (`*Editor*.cs`).
+- **`unity-input-system.md`**: Automatically applied when working with inputs (`*Input*.cs`, `*.inputactions`).
 - **`unity-architecture-patterns.md`**: Triggered on demand for architecture design and refactoring.
 - **`unity-ui-physics-audio.md`**: Triggered on demand for UGUI, physics simulation, or audio integration.
+- **`unity-asset-memory-management.md`**: Triggered on demand for Addressables, memory management, and asset lifecycle.
+- **`unity-data-persistence.md`**: Triggered on demand for save game systems, serialization, and state persistence.
+- **`unity-job-system-burst.md`**: Triggered on demand for high-performance computing, Job System, and Burst compilation.
+- **`unity-testing-diagnostics.md`**: Triggered on demand for unit testing, UTF, logging, and runtime assertions.
 - **`unity-audit-release.md`**: Manually triggered before release via `@unity-audit-release`.

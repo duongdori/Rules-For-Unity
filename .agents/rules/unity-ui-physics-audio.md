@@ -46,9 +46,9 @@ By default, newly created `Image`, `RawImage`, and `TextMeshProUGUI` components 
 - **Never modify `transform.position` or `transform.rotation` directly on dynamic Rigidbodies**. Doing so teleports the body, resets velocity, and breaks continuous collision detection.
 
 ### B. Movement APIs in Unity 6
-In Unity 6, `Rigidbody.velocity` is updated to `linearVelocity` and `angularVelocity`:
+In Unity 6, `Rigidbody.velocity` and `Rigidbody2D.velocity` are deprecated and replaced with `linearVelocity` and `angularVelocity`:
 ```csharp
-// CORRECT in Unity 6
+// CORRECT in Unity 6 (3D Physics)
 private void FixedUpdate()
 {
     // Directional velocity control
@@ -56,6 +56,12 @@ private void FixedUpdate()
 
     // Or kinematic continuous movement
     _kinematicRb.MovePosition(_kinematicRb.position + moveDelta);
+}
+
+// CORRECT in Unity 6 (2D Physics)
+private void FixedUpdate2D()
+{
+    _rigidbody2D.linearVelocity = new Vector2(_moveInput.x * _speed, _rigidbody2D.linearVelocity.y);
 }
 ```
 
@@ -101,13 +107,23 @@ public class AudioManager : MonoBehaviour
         source.Play();
 
         // Release back to pool when playback finishes using Awaitable
-        ReleaseAfterPlaybackAsync(source, clip.length);
+        _ = ReleaseAfterPlaybackAsync(source, clip.length, destroyCancellationToken);
     }
 
-    private async void ReleaseAfterPlaybackAsync(AudioSource source, float delay)
+    private async Awaitable ReleaseAfterPlaybackAsync(AudioSource source, float delay, System.Threading.CancellationToken cancellationToken)
     {
-        await Awaitable.WaitForSecondsAsync(delay, destroyCancellationToken);
-        _sfxPool.Release(source);
+        try
+        {
+            await Awaitable.WaitForSecondsAsync(delay, cancellationToken);
+            if (source != null)
+            {
+                _sfxPool.Release(source);
+            }
+        }
+        catch (System.OperationCanceledException)
+        {
+            // Object destroyed or disabled before playback ended; pool cleanup handled on destroy
+        }
     }
 }
 ```

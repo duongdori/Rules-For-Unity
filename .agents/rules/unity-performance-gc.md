@@ -238,3 +238,55 @@ transform.SetPositionAndRotation(newPos, newRot);
 
 ### C. Cache `Camera.main`
 `Camera.main` internally performs an expensive `GameObject.FindWithTag("MainCamera")` call unless cached. Store the main camera reference in `Awake()` or access it via a dedicated singleton manager.
+
+---
+
+## 6. Rendering, Shaders & Animation Optimization
+
+### A. Avoid `renderer.material` Leak (The Hidden Instantiation Trap)
+Accessing `renderer.material` causes Unity to silently instantiate an entire duplicate copy of the Material on the heap and GPU. This breaks SRP Batcher / GPU Instancing batches and leaks memory unless manually destroyed.
+- **Rule**: Never call `renderer.material` to modify properties per-object.
+- **Correct**: Use a cached `MaterialPropertyBlock` to modify per-instance properties without cloning materials or breaking GPU instancing.
+
+```csharp
+public class EntityHighlighter : MonoBehaviour
+{
+    private static readonly int BaseColorPropertyId = Shader.PropertyToID("_BaseColor");
+
+    [SerializeField] private Renderer _meshRenderer;
+    private MaterialPropertyBlock _propertyBlock;
+
+    private void Awake()
+    {
+        _propertyBlock = new MaterialPropertyBlock();
+    }
+
+    public void SetHighlightColor(Color color)
+    {
+        // Zero allocations, does not clone material, maintains SRP Batching
+        _meshRenderer.GetPropertyBlock(_propertyBlock);
+        _propertyBlock.SetColor(BaseColorPropertyId, color);
+        _meshRenderer.SetPropertyBlock(_propertyBlock);
+    }
+}
+```
+
+### B. Cache Shader Property IDs via `Shader.PropertyToID`
+Passing string names to materials or property blocks (`material.SetFloat("_Emission", 1f)`) calculates a 32-bit integer string hash on every call.
+- **Rule**: Store property hashes in `static readonly int` variables:
+```csharp
+private static readonly int EmissionIntensityId = Shader.PropertyToID("_EmissionIntensity");
+private static readonly int DissolveAmountId = Shader.PropertyToID("_DissolveAmount");
+```
+
+### C. Cache Animator Parameters via `Animator.StringToHash`
+Passing string names to `Animator` (`animator.SetTrigger("Attack")` or `animator.Play("Walk")`) incurs string hashing overhead on every invocation.
+- **Rule**: Pre-calculate and cache all Animator parameter and state hashes:
+```csharp
+public static class PlayerAnimationHashes
+{
+    public static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    public static readonly int IsGrounded = Animator.StringToHash("IsGrounded");
+    public static readonly int AttackTrigger = Animator.StringToHash("Attack");
+}
+```

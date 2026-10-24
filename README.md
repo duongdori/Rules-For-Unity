@@ -13,12 +13,17 @@ To conserve context tokens and adhere to Antigravity's 20,000-token rules budget
 | Rule File | Trigger Mode | Activation Condition | Focus Area |
 | :--- | :--- | :--- | :--- |
 | **`AGENTS.md`** | `always_on` *(inherent)* | Root of workspace; injected unconditionally into all chat turns | Project core invariants, directory layout, `.asmdef` boundaries |
-| **`.agents/rules/unity-csharp-conventions.md`** | `glob` | `*.cs` | Naming standards, `[SerializeField] private`, Unity Object lifetime ("fake null") |
-| **`.agents/rules/unity-performance-gc.md`** | `glob` | `*.cs` | Zero-allocation hot loops, Unity 6 `Awaitable`, `UnityEngine.Pool`, NonAlloc physics |
+| **`.agents/rules/unity-csharp-conventions.md`** | `glob` | `*.cs` | Naming standards, `[SerializeField] private`, Unity Object lifetime ("fake null"), lifecycle discipline |
+| **`.agents/rules/unity-performance-gc.md`** | `glob` | `*.cs` | Zero-allocation hot loops, Unity 6 `Awaitable`, `UnityEngine.Pool`, Material/Shader/Animator hash traps |
 | **`.agents/rules/unity-ui-toolkit.md`** | `glob` | `*.uxml, *.uss, *UI*.cs, *Presenter*.cs, *View*.cs` | UI Toolkit standards, silent traps (fonts, kebab-case, flex-shrink), anti click-through, theming |
 | **`.agents/rules/unity-editor-tooling.md`** | `glob` | `*Editor*.cs, Assets/Editor/**/*.cs, *.Editor.cs` | Custom Inspectors, `SerializedObject`, Undo recording, UI Toolkit for Editor |
-| **`.agents/rules/unity-architecture-patterns.md`** | `model_decision` | Injected progressively when architectural design/refactoring is detected | ScriptableObject architecture, Event Bus, State Machines, Dependency Injection |
-| **`.agents/rules/unity-ui-physics-audio.md`** | `model_decision` | Injected progressively when UGUI, physics, or audio tasks are detected | Canvas splitting, TextMeshPro, `linearVelocity`, AudioSource pooling |
+| **`.agents/rules/unity-input-system.md`** | `glob` | `*Input*.cs, *.inputactions` | Unity 6 Input System, decoupled `InputReader`, Action Map lifecycle, controller disconnects |
+| **`.agents/rules/unity-architecture-patterns.md`** | `model_decision` | Injected progressively when architectural design/refactoring is detected | ScriptableObject architecture, Event Bus exception safety, State Machines, DI, Persistence boundaries |
+| **`.agents/rules/unity-ui-physics-audio.md`** | `model_decision` | Injected progressively when UGUI, physics, or audio tasks are detected | Canvas splitting, TextMeshPro, `linearVelocity` (2D/3D), AudioSource pooling |
+| **`.agents/rules/unity-asset-memory-management.md`** | `model_decision` | Injected progressively when Addressables, asset loading, or memory management is detected | Addressables lifecycle, `Resources.Load` strict prohibition, RenderTexture/Mesh cleanup |
+| **`.agents/rules/unity-data-persistence.md`** | `model_decision` | Injected progressively when save/load or data persistence is detected | DTO architecture, atomic file writing against corruption, PlayerPrefs limits, version migration |
+| **`.agents/rules/unity-job-system-burst.md`** | `model_decision` | Injected progressively when multithreading or heavy computing is detected | C# Job System (`IJobParallelFor`), Burst Compiler, `NativeArray` lifecycle & disposal |
+| **`.agents/rules/unity-testing-diagnostics.md`** | `model_decision` | Injected progressively when testing or logging is detected | Unit testing (EditMode vs PlayMode), zero-cost conditional logging, safe assertions |
 | **`.agents/rules/unity-audit-release.md`** | `manual` | Triggered only when the user types `@unity-audit-release` in chat | Pre-flight audit: missing scripts, profiler GC check, IL2CPP, ASTC compression |
 
 ---
@@ -26,9 +31,11 @@ To conserve context tokens and adhere to Antigravity's 20,000-token rules budget
 ## 2. Key Highlights for Unity 6
 
 1. **Unity 6 Native Concurrency**: Emphasizes `UnityEngine.Awaitable` over legacy Coroutines for zero-allocation async programming with `CancellationToken` support.
-2. **Modern Input & Physics APIs**: Adopts modern Unity 6 physics conventions (such as `Rigidbody.linearVelocity`) and modern Input System event paradigms.
-3. **Memory Safety & Profiler Compliance**: Strictly prohibits heap allocations (`new`, closures, LINQ, string concatenation) in hot loops (`Update`, `FixedUpdate`, `LateUpdate`).
+2. **Modern Input & Physics APIs**: Adopts modern Unity 6 physics conventions (`Rigidbody.linearVelocity`, `Rigidbody2D.linearVelocity`) and modern Input System decoupled event paradigms.
+3. **Memory Safety & Profiler Compliance**: Strictly prohibits heap allocations (`new`, closures, LINQ, string concatenation) in hot loops, and prevents memory leaks from unmanaged buffers, Addressables, and Material instances.
 4. **Unity Object Lifetime**: Prevents common traps with null-coalescing (`??`) and null-conditional (`?.`) operators on `UnityEngine.Object` subclasses.
+5. **High-Performance Computing**: Leverages C# Job System and Burst Compiler for CPU-intensive data operations with native memory safety.
+6. **Robust Data Persistence**: Enforces atomic file writes to protect player progress from corruption caused by crashes or unexpected power loss.
 
 ---
 

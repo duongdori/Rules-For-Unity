@@ -270,3 +270,14 @@ Unity 6 supports modern C# language features. Utilize them where readability and
   };
   ```
 - **Null Safety**: Use `#nullable enable` on new scripts to catch null reference issues at compile time.
+
+---
+
+## 8. Script Execution Order Discipline
+
+Never use `[DefaultExecutionOrder]` as a band-aid to patch initialization race conditions between arbitrary game scripts.
+- **The Problem**: Shifting execution orders manually creates invisible coupling and fragile order-of-operation bugs that are difficult to reproduce or debug.
+- **The Standard Solution**:
+  1. Rely on the natural lifecycle separation: cache local components in `Awake()`, resolve cross-object dependencies in `Start()`.
+  2. For complex startup sequences, use an explicit **Bootstrapper** or initialization method (`Construct()` / `Initialize()`) driven by an architectural entry point rather than racing `Awake()` calls.
+- **Valid Exception**: Only assign `[DefaultExecutionOrder]` to fundamental engine bootstrappers (e.g., `-1000` for an application service container or input pre-poll manager).
