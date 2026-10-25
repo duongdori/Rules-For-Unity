@@ -39,42 +39,86 @@ To conserve context tokens and adhere to Antigravity's 20,000-token rules budget
 
 ---
 
-## 3. Installation & Usage Guide
+## 3. Installation & Integration Guide
 
-### Option A: Use Directly in a Unity Project (Workspace Scope)
-Copy the `AGENTS.md` file and `.agents/` directory directly into the root folder of your Unity project (where the `Assets/` and `ProjectSettings/` folders reside):
+### Method 1: Git Submodule (Recommended for Projects & Teams)
+Integrate this repository into any Unity game project using Git Submodule to ensure version consistency and seamless updates across your team.
+
+#### Step 1: Add the Submodule
+Open your terminal at the **root of your Unity project** (the directory containing `Assets/` and `ProjectSettings/`):
 
 ```powershell
-# From your Unity project root:
-Copy-Item -Recurse -Force "d:\AI_Agents\RulesForUnity\.agents" .
-Copy-Item -Force "d:\AI_Agents\RulesForUnity\AGENTS.md" .
+git submodule add https://github.com/duongdori/Rules-For-Unity.git .rules
 ```
 
-### Option B: Install as Global Rules (Machine-Wide Scope)
-To have these rules automatically active across **all** projects on your development machine:
+#### Step 2: Link Rules for Antigravity Discovery
+Google Antigravity requires `AGENTS.md` and `.agents/` at the root of the workspace. Create a directory junction and hard link from the submodule:
+
+**Windows (PowerShell / CMD)**:
+*(No Administrator privileges or Developer Mode required)*
+```powershell
+# Create junction for .agents directory
+cmd /c mklink /J .agents .rules\.agents
+
+# Create hard link for AGENTS.md
+cmd /c mklink /H AGENTS.md .rules\AGENTS.md
+```
+
+**macOS / Linux (Terminal)**:
+```bash
+ln -s .rules/.agents .agents
+ln -s .rules/AGENTS.md AGENTS.md
+```
+
+#### Step 3: Commit the Integration
+Commit the submodule configuration and root links to your game repository:
+```powershell
+git add .gitmodules .rules AGENTS.md .agents
+git commit -m "chore: integrate Rules-For-Unity via submodule"
+```
+
+---
+
+## 4. Updating Rules in Existing Projects
+
+Whenever [Rules-For-Unity](https://github.com/duongdori/Rules-For-Unity) publishes new rules or optimizations, update any existing game project with two simple commands:
+
+```powershell
+# 1. Fetch and merge latest rules from GitHub
+git submodule update --remote --merge
+
+# 2. Commit updated submodule commit hash
+git add .rules
+git commit -m "chore: update Rules-For-Unity to latest version"
+```
+
+### Team Clone Instructions
+When teammates clone your game repository, they can pull all rules automatically:
+```powershell
+git clone --recurse-submodules <YOUR_GAME_REPO_URL>
+```
+If a teammate already cloned without the submodule flag, run:
+```powershell
+git submodule update --init --recursive
+```
+*(On Windows, run the two `mklink` commands from Step 2 once if links are not automatically preserved).*
+
+---
+
+## 5. Alternative: Machine-Wide Global Installation (Solo Dev)
+To have these rules automatically active across **all** Unity projects on your development machine without per-project submodules:
 
 ```powershell
 # Create global rules directory if it does not exist:
 New-Item -ItemType Directory -Force "$HOME\.gemini\config\rules"
 
-# Copy modular rules to global configuration:
+# Copy rules into global Antigravity configuration:
 Copy-Item -Force "d:\AI_Agents\RulesForUnity\.agents\rules\*.md" "$HOME\.gemini\config\rules\"
-```
-
-### Option C: Share via Project Inheritance (`rules.json`)
-If you keep this repository as a shared submodule or sibling repository, inherit from it in your target project's `.agents/rules.json`:
-
-```json
-{
-  "inherits": [
-    "../RulesForUnity/.agents/rules.json"
-  ]
-}
 ```
 
 ---
 
-## 4. Manual Trigger Reference
+## 6. Manual Trigger Reference
 
 Whenever you are preparing a build or performing a quality milestone review, mention the audit rule directly in your chat:
 
