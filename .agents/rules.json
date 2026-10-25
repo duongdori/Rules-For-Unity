@@ -10,7 +10,7 @@
     },
     {
       "path": "rules/unity-performance-gc.md",
-      "description": "Zero-allocation hot paths, Awaitable, and memory optimization for Unity 6"
+      "description": "Zero-allocation hot paths, Awaitable & UniTask hybrid concurrency, and memory optimization"
     },
     {
       "path": "rules/unity-ui-toolkit.md",

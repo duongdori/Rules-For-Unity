@@ -59,14 +59,18 @@ private void Update()
 
 ---
 
-## 2. Modern Asynchronous Programming with Unity 6 `Awaitable`
+## 2. Modern Asynchronous Programming: Unity 6 `Awaitable` & Hybrid `UniTask` Interop
 
-Traditional Unity Coroutines generate allocations each time a yield instruction is created (`new WaitForSeconds(...)`) and allocate state machine enumerators. Unity 6 introduces `UnityEngine.Awaitable`, a high-performance, struct-backed async primitive tightly integrated with the engine.
+Traditional Unity Coroutines generate heap allocations each time a yield instruction is created (`new WaitForSeconds(...)`) and allocate state machine enumerators. Unity 6 introduces `UnityEngine.Awaitable`, a high-performance, struct/pooled async primitive tightly integrated with the C++ engine layer.
 
-### Rules for Asynchronous Operations:
-- Prefer `Awaitable` over `IEnumerator` coroutines.
-- Always propagate and honor `CancellationToken` (e.g., linked to `destroyCancellationToken`).
-- Use built-in static methods: `Awaitable.NextFrameAsync()`, `Awaitable.WaitForSecondsAsync()`, `Awaitable.MainThreadAsync()`.
+### A. Primary Architecture Standard: `UnityEngine.Awaitable`
+- **Default Choice**: All standard gameplay routines, scene transitions, cooldown timers, frame-waits, and public API contracts must use `Awaitable` or `Awaitable<T>`.
+- **Core Primitives**:
+  - `Awaitable.NextFrameAsync(token)`: Wait for next frame without allocations.
+  - `Awaitable.FixedUpdateAsync(token)`: Sync with the physics step.
+  - `Awaitable.EndOfFrameAsync(token)`: Wait for rendering completion (screen captures, frame readback).
+  - `Awaitable.WaitForSecondsAsync(duration, token)`: Timer delays without garbage collection.
+  - `Awaitable.BackgroundThreadAsync()` & `Awaitable.MainThreadAsync()`: Thread context switching.
 
 ```csharp
 public async Awaitable PerformCooldownAsync(float durationSeconds)
@@ -90,7 +94,59 @@ public async Awaitable PerformCooldownAsync(float durationSeconds)
 }
 ```
 
-### Legacy Coroutine Exception:
+### B. When to Introduce `UniTask` (Gaps `Awaitable` Does Not Solve)
+While `Awaitable` handles 90%+ of gameplay tasks natively, `UniTask` is permitted as an **internal utility layer** for specific complex concurrency patterns that `Awaitable` lacks:
+
+| Problem / Gap in `Awaitable` | `UniTask` Solution | Usage Guidelines |
+| :--- | :--- | :--- |
+| **Heterogeneous Multi-Task Combinators** (`Task<T1>`, `Task<T2>`) | `UniTask.WhenAll(...)` returns strongly-typed tuples: `(T1, T2) = await UniTask.WhenAll(task1, task2)` | Use inside method body to load concurrent data, but keep method return type as `Awaitable` |
+| **Racing Asynchronous Operations** | `UniTask.WhenAny(...)` returning winner index or first result | Use for racing user input vs timeout, or multi-endpoint network requests |
+| **Timeout & Advanced Cancellation** | `TimeoutController`, `CancellationTokenSource.CancelAfterSlim()` | Zero-alloc timeout handling without creating heavyweight .NET timer threads |
+| **Pub/Sub Streams & Concurrency Channels** | `Channel<T>`, `AsyncReactiveProperty<T>`, Async LINQ | High-throughput decoupled data streaming between background workers and UI |
+| **Leak Detection in Editor** | **UniTask Tracker Window** (`Window > UniTask Tracker`) | Audit pending tasks during development to verify cancellation token coverage |
+| **Third-Party Async Wrappers** | Built-in extensions for DOTween (`tween.ToUniTask()`), Addressables | Eliminates manual completion source boilerplate for legacy third-party assets |
+
+### C. The Bridge & Boundary Rules (Hybrid Architecture)
+1. **Public Contract Invariant**: Interfaces, abstract methods, and public component methods must expose `Awaitable` or `Awaitable<T>`. Never leak `UniTask` into public domain signatures.
+2. **Internal Utilization**: Await `UniTask` operations directly within an `async Awaitable` method:
+
+```csharp
+// CORRECT: Public contract is Awaitable; UniTask is used internally for tuple WhenAll
+public async Awaitable<(UserProfile profile, GameInventory inventory)> LoadPlayerDataAsync(CancellationToken token)
+{
+    // UniTask handles parallel execution with strongly-typed tuple returns
+    var (profile, inventory) = await UniTask.WhenAll(
+        FetchProfileViaNetworkAsync(token),
+        FetchInventoryFromDiskAsync(token)
+    );
+
+    return (profile, inventory);
+}
+
+// CORRECT: Timeout control via UniTask inside an Awaitable workflow
+public async Awaitable<bool> TryConnectWithTimeoutAsync(float timeoutSeconds, CancellationToken token)
+{
+    using var timeoutController = new TimeoutController();
+    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutController.Timeout(TimeSpan.FromSeconds(timeoutSeconds)));
+
+    try
+    {
+        await ConnectToServerAsync(linkedCts.Token);
+        return true;
+    }
+    catch (OperationCanceledException) when (timeoutController.IsTimeout())
+    {
+        Debug.LogWarning("Connection attempt timed out.");
+        return false;
+    }
+}
+```
+
+3. **CancellationToken Propagation**:
+   - Every async method must accept a `CancellationToken` (defaulting to `default` or `destroyCancellationToken`).
+   - Never use fire-and-forget `async void` unless handling an isolated top-level UI event handler wrapped in a `try/catch` block.
+
+### D. Legacy Coroutine Exception:
 If legacy Coroutines must be used, **never allocate yield instructions dynamically**:
 ```csharp
 // FORBIDDEN

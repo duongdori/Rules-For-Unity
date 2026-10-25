@@ -196,3 +196,45 @@ Deconstruct gameplay entities into focused, cooperative components:
 | `PlayerAudio` | Plays sound effects corresponding to entity actions |
 
 No single MonoBehaviour should exceed **300 lines of code**. If it does, extract sub-systems.
+
+---
+
+## 7. Asynchronous Architecture & Concurrency Boundaries
+
+When designing async systems in Unity 6, avoid tight coupling to external async frameworks across architecture layers.
+
+### A. Layered Concurrency Model
+Maintain a strict separation between public interface contracts and private async implementations:
+- **Domain & Interface Contracts (Public)**: Always expose `UnityEngine.Awaitable` or `Awaitable<T>`. This ensures the domain layer remains 100% native Unity 6 without leaking third-party package dependencies (`UniTask`) across assembly boundaries.
+- **Service & Implementation Details (Private/Internal)**: If complex operations require features not present in `Awaitable` (e.g. multi-task heterogeneous tuple awaiting with `UniTask.WhenAll`, racing operations with `WhenAny`, or `Channel<T>` streaming), implement them internally using `UniTask` and await or bridge the final result back to `Awaitable`.
+
+```csharp
+// Domain Interface remains native Unity 6
+public interface IUserDataService
+{
+    Awaitable<(UserProfile Profile, UserInventory Inventory)> LoadUserDataAsync(CancellationToken token);
+}
+
+// Concrete implementation can leverage UniTask internally for parallel tuple combinators
+public class UserDataService : IUserDataService
+{
+    public async Awaitable<(UserProfile Profile, UserInventory Inventory)> LoadUserDataAsync(CancellationToken token)
+    {
+        // Internal optimization using UniTask.WhenAll to fetch heterogeneous models concurrently
+        var (profile, inventory) = await UniTask.WhenAll(
+            FetchProfileInternalAsync(token),
+            FetchInventoryInternalAsync(token)
+        );
+
+        return (profile, inventory);
+    }
+
+    private async UniTask<UserProfile> FetchProfileInternalAsync(CancellationToken token) { /* ... */ }
+    private async UniTask<UserInventory> FetchInventoryInternalAsync(CancellationToken token) { /* ... */ }
+}
+```
+
+### B. Lifecycle Binding & Cancellation Token Discipline
+- **MonoBehaviour Scopes**: Always wire async operations to `destroyCancellationToken`. Never let an async method continue modifying components after their GameObject is destroyed.
+- **Service Scopes**: Background services (DI singletons) must receive a dedicated cancellation token linked to application exit or scene teardown (e.g., `Application.exitCancellationToken`).
+- **No Fire-and-Forget `async void`**: Never call `async void` methods from code-to-code APIs. Return `async Awaitable` and await or explicitly monitor them. Only top-level UI button click handlers may use `async void`, and they MUST be wrapped in a root `try/catch` block to prevent unhandled exceptions crashing the frame loop.

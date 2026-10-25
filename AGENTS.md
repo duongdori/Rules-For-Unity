@@ -66,9 +66,19 @@ Assets/
   var obj = target ?? fallbackObj;
   ```
 
-### C. Modern Concurrency with Unity 6 `Awaitable`
-- Prefer `UnityEngine.Awaitable` over legacy Coroutines or third-party wrappers when performing asynchronous operations:
+### C. Modern Concurrency: Unity 6 `Awaitable` & Hybrid `UniTask` Interop
+- **Primary Standard**: Use `UnityEngine.Awaitable` / `Awaitable<T>` as the default first-class async standard for all public APIs, game services, and MonoBehaviour lifecycle routines in Unity 6+.
+- **Zero Coroutines**: Eliminate legacy `IEnumerator` coroutines.
+- **Hybrid `UniTask` Interoperability**:
+  - `UniTask` is permitted as an **internal utility layer** for complex async operations that `Awaitable` does not provide natively:
+    1. Heterogeneous tuple multi-task combinators (`UniTask.WhenAll(Task<A>, Task<B>)`).
+    2. Task racing & timeout control (`UniTask.WhenAny`, `TimeoutController`).
+    3. Advanced reactive data flows (`Channel<T>`, `AsyncReactiveProperty<T>`, Async LINQ).
+    4. Task leak diagnostics using the **UniTask Tracker Window** in Editor.
+  - **Contract Boundary Invariant**: Public API signatures and component interfaces must expose `Awaitable` / `Awaitable<T>`. Confine `UniTask` usage to method internals and bridge back to `Awaitable`.
+- **Cancellation Propagation**: Always pass and check `CancellationToken` (prefer `destroyCancellationToken` in MonoBehaviours). Never trigger unmonitored `async void` fire-and-forget tasks without try/catch error boundaries.
   ```csharp
+  // Standard Awaitable
   public async Awaitable FadeOutAsync(CancellationToken cancellationToken)
   {
       while (_canvasGroup.alpha > 0f)
@@ -77,6 +87,17 @@ Assets/
           _canvasGroup.alpha -= Time.deltaTime;
           await Awaitable.NextFrameAsync(cancellationToken);
       }
+  }
+
+  // Hybrid UniTask Bridge (Internal helper returning standard Awaitable)
+  public async Awaitable<(PlayerData, LevelData)> LoadMatchDataAsync(CancellationToken cancellationToken)
+  {
+      // UniTask.WhenAll provides strongly-typed tuple completion not built into Awaitable
+      var (player, level) = await UniTask.WhenAll(
+          FetchPlayerDataAsync(cancellationToken),
+          FetchLevelDataAsync(cancellationToken)
+      );
+      return (player, level);
   }
   ```
 

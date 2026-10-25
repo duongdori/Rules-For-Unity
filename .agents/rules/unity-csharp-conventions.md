@@ -281,3 +281,44 @@ Never use `[DefaultExecutionOrder]` as a band-aid to patch initialization race c
   1. Rely on the natural lifecycle separation: cache local components in `Awake()`, resolve cross-object dependencies in `Start()`.
   2. For complex startup sequences, use an explicit **Bootstrapper** or initialization method (`Construct()` / `Initialize()`) driven by an architectural entry point rather than racing `Awake()` calls.
 - **Valid Exception**: Only assign `[DefaultExecutionOrder]` to fundamental engine bootstrappers (e.g., `-1000` for an application service container or input pre-poll manager).
+
+---
+
+## 9. Asynchronous Method Conventions & Signatures
+
+Maintain consistent conventions for asynchronous operations across all C# scripts:
+
+### A. Naming & Method Suffix
+- Every method returning `Awaitable`, `Awaitable<T>`, `UniTask`, or `UniTask<T>` must end with the `Async` suffix:
+  - ✅ `FadeScreenAsync()`, `FetchLeaderboardAsync()`
+  - ❌ `FadeScreen()`, `FetchLeaderboard()`
+
+### B. Parameter Ordering & Cancellation Tokens
+- The last parameter of an async method should be a `CancellationToken` (prefer assigning `= default` for optional callers when appropriate, or explicitly requiring it for critical lifecycle routines):
+  ```csharp
+  public async Awaitable PlayIntroSequenceAsync(float delay, CancellationToken cancellationToken = default)
+  ```
+
+### C. Return Types & Prohibitions
+- **Public API Return Types**: Always declare public API methods as returning `Awaitable` or `Awaitable<T>`.
+- **Private / Internal Utility Types**: `UniTask` / `UniTask<T>` is permitted for private/internal methods when utilizing multi-task tuple combinators or advanced timing.
+- **Prohibit `async void`**: Never use `async void` for standard game logic or internal routines. An unhandled exception in an `async void` method can crash the process or escape Unity's error handling.
+  - *Exception*: Top-level UI event callbacks (e.g., UI Toolkit button click or UGUI `onClick.AddListener`) may use `async void`, provided the method body is enclosed in a `try/catch` block:
+  ```csharp
+  // PERMITTED ONLY FOR ROOT UI EVENT HANDLERS
+  private async void HandlePlayButtonClicked()
+  {
+      try
+      {
+          await StartGameAsync(destroyCancellationToken);
+      }
+      catch (OperationCanceledException)
+      {
+          // Normal cancellation on destroy/disable
+      }
+      catch (Exception ex)
+      {
+          Debug.LogException(ex);
+      }
+  }
+  ```
